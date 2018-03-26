@@ -11,7 +11,7 @@ var opsTmpl = `
 		client *SOAPClient
 	}
 
-	func New{{$portType}}(url string, tls bool, auth *BasicAuth) *{{$portType}} {
+	func New{{$portType}}(url string, tls bool, auth *BasicAuth) I{{$portType}}Service {
 		if url == "" {
 			url = {{findServiceAddress .Name | printf "%q"}}
 		}
@@ -22,7 +22,7 @@ var opsTmpl = `
 		}
 	}
 
-	func New{{$portType}}WithTLSConfig(url string, tlsCfg *tls.Config, auth *BasicAuth) *{{$portType}} {
+	func New{{$portType}}WithTLSConfig(url string, tlsCfg *tls.Config, auth *BasicAuth) I{{$portType}}Service {
 		if url == "" {
 			url = {{findServiceAddress .Name | printf "%q"}}
 		}
@@ -40,6 +40,30 @@ var opsTmpl = `
 	// Backwards-compatible function: use AddHeader instead
 	func (service *{{$portType}}) SetHeader(header interface{}) {
 		service.client.AddHeader(header)
+	}
+
+	type I{{$portType}} interface {
+	{{range .Operations}}
+		{{$faults := len .Faults}}
+		{{$requestType := findType .Input.Message | replaceReservedWords | makePublic}}
+		{{$soapAction := findSOAPAction .Name $portType}}
+		{{$responseType := findType .Output.Message | replaceReservedWords | makePublic}}
+
+		{{/*if ne $soapAction ""*/}}
+		{{if gt $faults 0}}
+		// Error can be either of the following types:
+		// {{range .Faults}}
+		//   - {{.Name}} {{.Doc}}{{end}}{{end}}
+		{{if ne .Doc ""}}/* {{.Doc}} */{{end}}
+		{{makePublic .Name | replaceReservedWords}} ({{if ne $requestType ""}}request *{{$requestType}}{{end}}) (*{{$responseType}}, error)
+		{{/*end*/}}
+	{{end}}
+	}
+
+	type I{{$portType}}Service interface {
+		I{{$portType}}
+		AddHeader(header interface{})
+		SetHeader(header interface{})
 	}
 
 	{{range .Operations}}
