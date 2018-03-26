@@ -262,6 +262,7 @@ func (g *GoWSDL) resolveXSDExternals(schema *XSDSchema, loc *Location) error {
 func (g *GoWSDL) genTypes() ([]byte, error) {
 	funcMap := template.FuncMap{
 		"toGoType":             toGoType,
+		"toGoTypeConst":        toGoTypeConst,
 		"stripns":              stripns,
 		"replaceReservedWords": replaceReservedWords,
 		"makePublic":           g.makePublicFn,
@@ -386,7 +387,7 @@ func goString(s string) string {
 	return strings.Replace(s, "\"", "\\\"", -1)
 }
 
-var xsd2GoTypes = map[string]string{
+var xsd2GoTypesConst = map[string]string{
 	"string":        "string",
 	"token":         "string",
 	"float":         "float32",
@@ -410,6 +411,30 @@ var xsd2GoTypes = map[string]string{
 	"anytype":       "interface{}",
 }
 
+var xsd2GoTypes = map[string]string{
+	"string":        "*string",
+	"token":         "*string",
+	"float":         "*float32",
+	"double":        "*float64",
+	"decimal":       "*float64",
+	"integer":       "*int32",
+	"int":           "*int32",
+	"short":         "*int16",
+	"byte":          "*int8",
+	"long":          "*int64",
+	"boolean":       "*bool",
+	"datetime":      "*time.Time",
+	"date":          "*time.Time",
+	"time":          "*time.Time",
+	"base64binary":  "[]byte",
+	"hexbinary":     "[]byte",
+	"unsignedint":   "*uint32",
+	"unsignedshort": "*uint16",
+	"unsignedbyte":  "*byte",
+	"unsignedlong":  "*uint64",
+	"anytype":       "interface{}",
+}
+
 func removeNS(xsdType string) string {
 	// Handles name space, ie. xsd:string, xs:string
 	r := strings.Split(xsdType, ":")
@@ -419,6 +444,25 @@ func removeNS(xsdType string) string {
 	}
 
 	return r[0]
+}
+
+func toGoTypeConst(xsdType string) string {
+	// Handles name space, ie. xsd:string, xs:string
+	r := strings.Split(xsdType, ":")
+
+	t := r[0]
+
+	if len(r) == 2 {
+		t = r[1]
+	}
+
+	value := xsd2GoTypesConst[strings.ToLower(t)]
+
+	if value != "" {
+		return value
+	}
+
+	return "*" + replaceReservedWords(makePublic(t))
 }
 
 func toGoType(xsdType string) string {
