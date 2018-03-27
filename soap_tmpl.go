@@ -240,6 +240,13 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		buffer = bytes.NewBufferString(post)
 	}
 
+	buffer = bytes.NewBufferString(strings.Replace(
+		buffer.String(),
+		"<Envelope ",
+		"<Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ",
+		1,
+	))
+
 	log.Println(buffer.String())
 
 	req, err := http.NewRequest("POST", s.url, buffer)
