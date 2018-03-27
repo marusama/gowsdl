@@ -206,6 +206,10 @@ func (s *SOAPClient) AddHeader(header interface{}) {
 }
 
 func (s *SOAPClient) Call(soapAction string, request, response interface{}) error {
+	xmlRequestString, isRequestXmlString := request.(string)
+	const body_content = "%BODY_CONTENT%"
+
+	buffer := new(bytes.Buffer)
 	envelope := SOAPEnvelope{}
 
 	if s.headers != nil && len(s.headers) > 0 {
@@ -214,9 +218,11 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		envelope.Header = soapHeader
 	}
 
-	envelope.Body.Content = request
-	buffer := new(bytes.Buffer)
-
+	if isRequestXmlString {
+		envelope.Body.Content = body_content;
+	} else {
+		envelope.Body.Content = request
+	}
 	encoder := xml.NewEncoder(buffer)
 	//encoder.Indent("  ", "    ")
 
@@ -226,6 +232,12 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 
 	if err := encoder.Flush(); err != nil {
 		return err
+	}
+
+	if isRequestXmlString {
+		pre := buffer.String()
+		post := strings.Replace(pre, "<Content>" + body_content + "</Content>", xmlRequestString, 1)
+		buffer = bytes.NewBufferString(post)
 	}
 
 	log.Println(buffer.String())

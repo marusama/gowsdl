@@ -17,6 +17,7 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"strings"
 
 	{{/*range .Imports*/}}
 		{{/*.*/}}

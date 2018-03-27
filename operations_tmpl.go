@@ -42,6 +42,10 @@ var opsTmpl = `
 		service.client.AddHeader(header)
 	}
 
+	func (service *{{$portType}}) GetClient() *SOAPClient {
+		return service.client
+	}
+
 	type I{{$portType}} interface {
 	{{range .Operations}}
 		{{$faults := len .Faults}}
@@ -64,6 +68,7 @@ var opsTmpl = `
 		I{{$portType}}
 		AddHeader(header interface{})
 		SetHeader(header interface{})
+		GetClient() *SOAPClient
 	}
 
 	{{range .Operations}}
