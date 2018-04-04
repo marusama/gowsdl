@@ -205,6 +205,8 @@ func (s *SOAPClient) AddHeader(header interface{}) {
 	s.headers = append(s.headers, header)
 }
 
+var nilFieldRegexp = regexp.MustCompile("<[a-zA-Z0-9]+?[ ]*?i:nil=\"true\"[ ]*?/>")
+
 func (s *SOAPClient) Call(soapAction string, request, response interface{}) error {
 	xmlRequestString, isRequestXmlString := request.(string)
 	const body_content = "%BODY_CONTENT%"
@@ -240,7 +242,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		buffer = bytes.NewBufferString(post)
 	}
 
-	log.Println(buffer.String())
+	// log.Println(buffer.String())
 
 	req, err := http.NewRequest("POST", s.url, buffer)
 	if err != nil {
@@ -277,10 +279,14 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		return nil
 	}
 
-	log.Println(string(rawbody))
+	// log.Println(string(rawbody))
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}
-	err = xml.Unmarshal(rawbody, respEnvelope)
+
+	rawbodyStr := string(rawbody)
+	rawbodyStr = nilFieldRegexp.ReplaceAllString(rawbodyStr, "")
+
+	err = xml.Unmarshal([]byte(rawbodyStr), respEnvelope)
 	if err != nil {
 		return err
 	}
