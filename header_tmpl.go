@@ -18,7 +18,11 @@ import (
 	"net/http"
 	"time"
 	"regexp"
+	"fmt"
 	"strings"
+	"reflect"
+
+	"github.com/fatih/structs"
 
 	{{/*range .Imports*/}}
 		{{/*.*/}}

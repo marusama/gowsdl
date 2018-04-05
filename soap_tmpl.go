@@ -208,10 +208,6 @@ func (s *SOAPClient) AddHeader(header interface{}) {
 var nilFieldRegexp = regexp.MustCompile("<[a-zA-Z0-9]+?[ ]*?i:nil=\"true\"[ ]*?/>")
 
 func (s *SOAPClient) Call(soapAction string, request, response interface{}) error {
-	xmlRequestString, isRequestXmlString := request.(string)
-	const body_content = "%BODY_CONTENT%"
-
-	buffer := new(bytes.Buffer)
 	envelope := SOAPEnvelope{}
 
 	if s.headers != nil && len(s.headers) > 0 {
@@ -220,27 +216,8 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		envelope.Header = soapHeader
 	}
 
-	if isRequestXmlString {
-		envelope.Body.Content = body_content;
-	} else {
-		envelope.Body.Content = request
-	}
-	encoder := xml.NewEncoder(buffer)
-	//encoder.Indent("  ", "    ")
-
-	if err := encoder.Encode(envelope); err != nil {
-		return err
-	}
-
-	if err := encoder.Flush(); err != nil {
-		return err
-	}
-
-	if isRequestXmlString {
-		pre := buffer.String()
-		post := strings.Replace(pre, "<Content>" + body_content + "</Content>", xmlRequestString, 1)
-		buffer = bytes.NewBufferString(post)
-	}
+	envelope.Body.Content = request
+	buffer := EncodeXML(envelope)
 
 	// log.Println(buffer.String())
 
@@ -298,4 +275,95 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 
 	return nil
 }
+
+func EncodeXML(request interface{}) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	encode_int(buf, request, "root", "", 0)
+	return buf
+}
+
+func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag string, level int) {
+
+	name := fieldName
+	omitempty := false
+	if xmlTag != "" {
+		ts := strings.Split(xmlTag, ",")
+		tagName := strings.TrimSpace(ts[0])
+		name = tagName
+		if len(ts) > 1 && strings.TrimSpace(ts[1]) == "omitempty" {
+			omitempty = true
+		}
+	}
+
+	if obj == nil {
+		if name != "" && !omitempty {
+			buf.WriteString(fmt.Sprintf("<%s i:nil=\"true\" />", name))
+		}
+		return
+	}
+
+	reflectVal := reflect.ValueOf(obj)
+	kind := reflectVal.Kind()
+
+	if (kind == reflect.Ptr || kind == reflect.Map || kind == reflect.Slice || kind == reflect.Interface) && reflectVal.IsNil() {
+		if name != "" && !omitempty {
+			buf.WriteString(fmt.Sprintf("<%s i:nil=\"true\" />", name))
+		}
+		return
+	}
+
+	if kind == reflect.Ptr {
+		reflectVal = reflectVal.Elem()
+		kind = reflectVal.Kind()
+	}
+
+	switch kind {
+	case reflect.Struct:
+		s := structs.New(obj)
+
+		// write xml elem
+		xmlns := ""
+		if xmlNameField, ok := s.FieldOk("XMLName"); ok {
+			xmlNameFieldTag := xmlNameField.Tag("xml")
+			ss := strings.SplitN(xmlNameFieldTag, " ", 2)
+			switch len(ss) {
+			case 2:
+				xmlns = ss[0]
+				name = ss[1]
+			case 1:
+				name = ss[0]
+			}
+		}
+		buf.WriteString("<" + name)
+		if level == 0 {
+			buf.WriteString(" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"")
+		}
+		if xmlns != "" {
+			buf.WriteString(" xmlns=\"" + xmlns + "\"")
+		}
+		buf.WriteString(">")
+		defer func() {
+			buf.WriteString("</" + name + ">")
+		}()
+
+		// write fields
+		for _, f := range s.Fields() {
+			if f.Name() == "XMLName" {
+				continue
+			}
+			encode_int(buf, f.Value(), f.Name(), f.Tag("xml"), level+1)
+		}
+	case reflect.Slice:
+		for i := 0; i < reflectVal.Len(); i++ {
+			encode_int(buf, reflectVal.Index(i).Interface(), fieldName, xmlTag, level+1)
+		}
+	case reflect.Float32:
+		fallthrough
+	case reflect.Float64:
+		buf.WriteString(fmt.Sprintf("<%s>%f</%s>", name, reflectVal.Interface(), name))
+	default:
+		buf.WriteString(fmt.Sprintf("<%s>%v</%s>", name, reflectVal.Interface(), name))
+	}
+}
+
 `
