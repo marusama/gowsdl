@@ -278,11 +278,11 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 
 func EncodeXML(request interface{}) *bytes.Buffer {
 	buf := &bytes.Buffer{}
-	encode_int(buf, request, "root", "", 0)
+	encode_int(buf, request, "root", "", false, 0)
 	return buf
 }
 
-func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag string, level int) {
+func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag string, parentIsSlice bool, level int) {
 
 	name := fieldName
 	omitempty := false
@@ -337,6 +337,7 @@ func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag str
 		buf.WriteString("<" + name)
 		if level == 0 {
 			buf.WriteString(" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"")
+			buf.WriteString(" xmlns:arr=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"")
 		}
 		if xmlns != "" {
 			buf.WriteString(" xmlns=\"" + xmlns + "\"")
@@ -351,16 +352,47 @@ func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag str
 			if f.Name() == "XMLName" {
 				continue
 			}
-			encode_int(buf, f.Value(), f.Name(), f.Tag("xml"), level+1)
+			encode_int(buf, f.Value(), f.Name(), f.Tag("xml"), false, level+1)
 		}
 	case reflect.Slice:
 		for i := 0; i < reflectVal.Len(); i++ {
-			encode_int(buf, reflectVal.Index(i).Interface(), fieldName, xmlTag, level+1)
+			encode_int(buf, reflectVal.Index(i).Interface(), fieldName, xmlTag, true, level+1)
 		}
 	case reflect.Float32:
 		fallthrough
 	case reflect.Float64:
+		if parentIsSlice {
+			name = "arr:" + name
+		}
 		buf.WriteString(fmt.Sprintf("<%s>%f</%s>", name, reflectVal.Interface(), name))
+	case reflect.Int:
+		fallthrough
+	case reflect.Int8:
+		fallthrough
+	case reflect.Int16:
+		fallthrough
+	case reflect.Int32:
+		fallthrough
+	case reflect.Int64:
+		fallthrough
+	case reflect.Uint:
+		fallthrough
+	case reflect.Uint8:
+		fallthrough
+	case reflect.Uint16:
+		fallthrough
+	case reflect.Uint32:
+		fallthrough
+	case reflect.Uint64:
+		if parentIsSlice {
+			name = "arr:" + name
+		}
+		buf.WriteString(fmt.Sprintf("<%s>%v</%s>", name, reflectVal.Interface(), name))
+	case reflect.String:
+		if parentIsSlice {
+			name = "arr:" + name
+		}
+		fallthrough
 	default:
 		strVal := fmt.Sprintf("%v", reflectVal.Interface())
 		wr := &strings.Builder{}
