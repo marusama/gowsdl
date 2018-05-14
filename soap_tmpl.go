@@ -362,7 +362,10 @@ func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag str
 	case reflect.Float64:
 		buf.WriteString(fmt.Sprintf("<%s>%f</%s>", name, reflectVal.Interface(), name))
 	default:
-		buf.WriteString(fmt.Sprintf("<%s>%v</%s>", name, reflectVal.Interface(), name))
+		strVal := fmt.Sprintf("%v", reflectVal.Interface())
+		wr := &strings.Builder{}
+		xml.EscapeText(wr, []byte(strVal))
+		buf.WriteString(fmt.Sprintf("<%s>%v</%s>", name, wr.String(), name))
 	}
 }
 
