@@ -267,6 +267,7 @@ func (g *GoWSDL) genTypes() ([]byte, error) {
 		"replaceReservedWords": replaceReservedWords,
 		"makePublic":           g.makePublicFn,
 		"makeFieldPublic":      makePublic,
+		"makePrivate":          makePrivate,
 		"comment":              comment,
 		"removeNS":             removeNS,
 		"goString":             goString,
@@ -577,6 +578,16 @@ func makePublic(identifier string) string {
 	}
 
 	field[0] = unicode.ToUpper(field[0])
+	return string(field)
+}
+
+func makePrivate(identifier string) string {
+	field := []rune(identifier)
+	if len(field) == 0 {
+		return identifier
+	}
+
+	field[0] = unicode.ToLower(field[0])
 	return string(field)
 }
 

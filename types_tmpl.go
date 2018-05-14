@@ -33,7 +33,7 @@ var typesTmpl = `
 {{define "Attributes"}}
 	{{range .}}
 		{{if .Doc}} {{.Doc | comment}} {{end}}
-		{{ .Name | makeFieldPublic}} {{toGoType .Type}} ` + "`" + `xml:"{{.Name}},attr,omitempty" json:"{{.Name}},omitempty"` + "`" + `
+		{{ .Name | makeFieldPublic}} {{toGoType .Type}} ` + "`" + `xml:"{{.Name}},attr,omitempty" json:"{{.Name | makePrivate}},omitempty"` + "`" + `
 	{{end}}
 {{end}}
 
@@ -56,24 +56,24 @@ var typesTmpl = `
 			{{template "Attributes" .Attributes}}
 		{{end}}
 	{{end}}
-	} ` + "`" + `xml:"{{.Name}},omitempty" json:"{{.Name}},omitempty"` + "`" + `
+	} ` + "`" + `xml:"{{.Name}},omitempty" json:"{{.Name | makePrivate}},omitempty"` + "`" + `
 {{end}}
 
 {{define "Elements"}}
 	{{range .}}
 		{{if ne .Ref ""}}
-			{{removeNS .Ref | replaceReservedWords  | makePublic}} {{if eq .MaxOccurs "unbounded"}}[]{{end}}{{.Ref | toGoType}} ` + "`" + `xml:"{{.Ref | removeNS}}" json:"{{.Ref | removeNS}},omitempty"` + "`" + `
+			{{removeNS .Ref | replaceReservedWords  | makePublic}} {{if eq .MaxOccurs "unbounded"}}[]{{end}}{{.Ref | toGoType}} ` + "`" + `xml:"{{.Ref | removeNS}}" json:"{{.Ref | removeNS | makePrivate}},omitempty"` + "`" + `
 		{{else}}
 		{{if not .Type}}
 			{{if .SimpleType}}
 				{{if .Doc}} {{.Doc | comment}} {{end}}
-				{{ .Name | makeFieldPublic}} {{toGoType .SimpleType.Restriction.Base}} ` + "`" + `xml:"{{.Name}}" json:"{{.Name}},omitempty"` + "`" + `
+				{{ .Name | makeFieldPublic}} {{toGoType .SimpleType.Restriction.Base}} ` + "`" + `xml:"{{.Name}}" json:"{{.Name | makePrivate}},omitempty"` + "`" + `
 			{{else}}
 				{{template "ComplexTypeInline" .}}
 			{{end}}
 		{{else}}
 			{{if .Doc}}{{.Doc | comment}} {{end}}
-			{{replaceReservedWords .Name | makeFieldPublic}} {{if eq .MaxOccurs "unbounded"}}[]{{end}}{{.Type | toGoType}} ` + "`" + `xml:"{{.Name}}" json:"{{.Name}},omitempty"` + "`" + ` {{end}}
+			{{replaceReservedWords .Name | makeFieldPublic}} {{if eq .MaxOccurs "unbounded"}}[]{{end}}{{.Type | toGoType}} ` + "`" + `xml:"{{.Name}}" json:"{{.Name | makePrivate}},omitempty"` + "`" + ` {{end}}
 		{{end}}
 	{{end}}
 {{end}}
