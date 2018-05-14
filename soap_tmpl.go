@@ -317,6 +317,8 @@ func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag str
 		kind = reflectVal.Kind()
 	}
 
+	typeName := reflectVal.Type().Name()
+
 	switch kind {
 	case reflect.Struct:
 		s := structs.New(obj)
@@ -361,7 +363,7 @@ func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag str
 	case reflect.Float32:
 		fallthrough
 	case reflect.Float64:
-		if parentIsSlice {
+		if parentIsSlice && strings.Contains(typeName, "float") {
 			name = "arr:" + name
 		}
 		buf.WriteString(fmt.Sprintf("<%s>%f</%s>", name, reflectVal.Interface(), name))
@@ -384,12 +386,12 @@ func encode_int(buf *bytes.Buffer, obj interface{}, fieldName string, xmlTag str
 	case reflect.Uint32:
 		fallthrough
 	case reflect.Uint64:
-		if parentIsSlice {
+		if parentIsSlice && strings.Contains(typeName, "int") {
 			name = "arr:" + name
 		}
 		buf.WriteString(fmt.Sprintf("<%s>%v</%s>", name, reflectVal.Interface(), name))
 	case reflect.String:
-		if parentIsSlice {
+		if parentIsSlice && strings.Contains(typeName, "string") {
 			name = "arr:" + name
 		}
 		fallthrough
