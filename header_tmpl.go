@@ -11,6 +11,7 @@ package {{.}}
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/xml"
 	"io/ioutil"

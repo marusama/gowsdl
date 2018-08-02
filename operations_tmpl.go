@@ -59,7 +59,7 @@ var opsTmpl = `
 		// {{range .Faults}}
 		//   - {{.Name}} {{.Doc}}{{end}}{{end}}
 		{{if ne .Doc ""}}/* {{.Doc}} */{{end}}
-		{{makePublic .Name | replaceReservedWords}} ({{if ne $requestType ""}}request *{{$requestType}}{{end}}) (*{{$responseType}}, error)
+		{{makePublic .Name | replaceReservedWords}} (ctx context.Context, {{if ne $requestType ""}}request *{{$requestType}}{{end}}) (*{{$responseType}}, error)
 		{{/*end*/}}
 	{{end}}
 	}
@@ -83,9 +83,9 @@ var opsTmpl = `
 		// {{range .Faults}}
 		//   - {{.Name}} {{.Doc}}{{end}}{{end}}
 		{{if ne .Doc ""}}/* {{.Doc}} */{{end}}
-		func (service *{{$portType}}) {{makePublic .Name | replaceReservedWords}} ({{if ne $requestType ""}}request *{{$requestType}}{{end}}) (*{{$responseType}}, error) {
+		func (service *{{$portType}}) {{makePublic .Name | replaceReservedWords}} (ctx context.Context, {{if ne $requestType ""}}request *{{$requestType}}{{end}}) (*{{$responseType}}, error) {
 			response := new({{$responseType}})
-			err := service.client.Call("{{$soapAction}}", {{if ne $requestType ""}}request{{else}}nil{{end}}, response)
+			err := service.client.Call(ctx, "{{$soapAction}}", {{if ne $requestType ""}}request{{else}}nil{{end}}, response)
 			if err != nil {
 				return nil, err
 			}

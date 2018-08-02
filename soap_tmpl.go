@@ -91,6 +91,7 @@ type SOAPClient struct {
 	tlsCfg  *tls.Config
 	auth    *BasicAuth
 	headers []interface{}
+	tr      *http.Transport
 }
 
 // **********
@@ -194,10 +195,16 @@ func NewSOAPClient(url string, insecureSkipVerify bool, auth *BasicAuth) *SOAPCl
 }
 
 func NewSOAPClientWithTLSConfig(url string, tlsCfg *tls.Config, auth *BasicAuth) *SOAPClient {
+	tr := &http.Transport{
+		TLSClientConfig: tlsCfg,
+		Dial:            dialTimeout,
+	}
+
 	return &SOAPClient{
-		url: url,
+		url:    url,
 		tlsCfg: tlsCfg,
-		auth: auth,
+		auth:   auth,
+		tr:     tr,
 	}
 }
 
@@ -207,7 +214,7 @@ func (s *SOAPClient) AddHeader(header interface{}) {
 
 var nilFieldRegexp = regexp.MustCompile("<[a-zA-Z0-9]+?[ ]*?i:nil=\"true\"[ ]*?/>")
 
-func (s *SOAPClient) Call(soapAction string, request, response interface{}) error {
+func (s *SOAPClient) Call(ctx context.Context, soapAction string, request, response interface{}) error {
 	envelope := SOAPEnvelope{}
 
 	if s.headers != nil && len(s.headers) > 0 {
@@ -233,14 +240,15 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 	req.Header.Add("SOAPAction", soapAction)
 
 	req.Header.Set("User-Agent", "gowsdl/0.1")
-	req.Close = true
+	// req.Close = true
 
-	tr := &http.Transport{
-		TLSClientConfig: s.tlsCfg,
-		Dial: dialTimeout,
-	}
+	//tr := &http.Transport{
+	//	TLSClientConfig: s.tlsCfg,
+	//	Dial: dialTimeout,
+	//}
 
-	client := &http.Client{Transport: tr}
+	req = req.WithContext(ctx)
+	client := &http.Client{Transport: s.tr}
 	res, err := client.Do(req)
 	if err != nil {
 		return err
