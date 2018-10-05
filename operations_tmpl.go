@@ -33,6 +33,17 @@ var opsTmpl = `
 		}
 	}
 
+	func New{{$portType}}WithTransport(url string, tr *http.Transport, auth *BasicAuth) I{{$portType}}Service {
+		if url == "" {
+			url = {{findServiceAddress .Name | printf "%q"}}
+		}
+		client := NewSOAPClientWithTransport(url, tr, auth)
+
+		return &{{$portType}}{
+			client: client,
+		}
+	}
+
 	func (service *{{$portType}}) AddHeader(header interface{}) {
 		service.client.AddHeader(header)
 	}

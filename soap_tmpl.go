@@ -88,7 +88,6 @@ type BasicAuth struct {
 
 type SOAPClient struct {
 	url     string
-	tlsCfg  *tls.Config
 	auth    *BasicAuth
 	headers []interface{}
 	tr      *http.Transport
@@ -200,11 +199,14 @@ func NewSOAPClientWithTLSConfig(url string, tlsCfg *tls.Config, auth *BasicAuth)
 		Dial:            dialTimeout,
 	}
 
+	return NewSOAPClientWithTransport(url, tr, auth)
+}
+
+func NewSOAPClientWithTransport(url string, tr *http.Transport, auth *BasicAuth) *SOAPClient {
 	return &SOAPClient{
-		url:    url,
-		tlsCfg: tlsCfg,
-		auth:   auth,
-		tr:     tr,
+		url:  url,
+		auth: auth,
+		tr:   tr,
 	}
 }
 
